@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: x-drafts-web
+    env: docker
+    repo: .
+    buildCommand: ""
+    startCommand: "gunicorn app:app --bind 0.0.0.0:10000"
+    envVars:
+      - key: TIMEZONE
+        value: Africa/Lagos
+
+  - type: worker
+    name: x-drafts-worker
+    env: docker
+    repo: .
+    startCommand: "python worker.py"
+
