@@ -1,12 +1,16 @@
 import os
-import time
 import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
-from storage import compose_drafts, save_drafts, init_db
+
+# Correct imports
+from storage import save_drafts, init_db
+from generator import compose_drafts
 from trends import get_trends
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def job_generate():
     try:
@@ -23,20 +27,20 @@ def job_generate():
 
 
 def main():
-    # 🔥 Ensure database is created in WORKER too (fixes your error)
+    # Initialize DB before scheduling anything
     try:
         logger.info("Initializing database...")
         init_db()
-        logger.info("DB initialized successfully")
+        logger.info("Database initialized successfully.")
     except Exception as e:
-        logger.error(f"DB init failed: {e}", exc_info=True)
+        logger.error(f"Database initialization failed: {e}", exc_info=True)
 
     scheduler = BlockingScheduler(timezone=os.getenv("TIMEZONE", "UTC"))
 
-    # First run immediately
-    scheduler.add_job(job_generate, "date", run_date=None)
+    # Run immediately on container start
+    scheduler.add_job(job_generate, "date")
 
-    # Scheduled runs
+    # Regular schedule
     scheduler.add_job(job_generate, "cron", hour=9, minute=0)
     scheduler.add_job(job_generate, "cron", hour=13, minute=0)
     scheduler.add_job(job_generate, "cron", hour=17, minute=0)
