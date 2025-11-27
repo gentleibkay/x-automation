@@ -1,58 +1,55 @@
 import sqlite3
-from typing import List, Dict
+import os
 
-DB = "data.db"
+DB_PATH = "/app/data/data.db"   # shared disk location
 
-def _conn():
-    c = sqlite3.connect(DB, check_same_thread=False)
-    c.row_factory = sqlite3.Row
-    return c
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 
 def init_db():
-    db = _conn()
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS drafts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        text TEXT,
-        image_path TEXT,
-        state TEXT,
-        created_at TEXT
-    )
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT,
+            image_path TEXT,
+            created_at TEXT,
+            approved INTEGER DEFAULT 0
+        );
     """)
-    db.commit()
+    conn.commit()
+    conn.close()
 
-def save_drafts(drafts: List[Dict]):
-    db = _conn()
+
+def save_drafts(drafts):
+    conn = get_db()
     for d in drafts:
-        db.execute(
-            "INSERT INTO drafts (text, image_path, state, created_at) VALUES (?, ?, ?, ?)",
-            (d["text"], d["image_path"], "pending", d["created_at"])
-        )
-    db.commit()
+        conn.execute("""
+            INSERT INTO drafts (text, image_path, created_at, approved)
+            VALUES (?, ?, ?, 0)
+        """, (d["text"], d["image_path"], d["created_at"]))
+    conn.commit()
+    conn.close()
+
 
 def list_drafts():
-    db = _conn()
-    rows = db.execute(
-        "SELECT * FROM drafts ORDER BY id DESC"
-    ).fetchall()
-    return [dict(r) for r in rows]
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM drafts WHERE approved = 0").fetchall()
+    conn.close()
+    return rows
 
-def approve_draft(draft_id: int):
-    db = _conn()
-    db.execute(
-        "UPDATE drafts SET state='approved' WHERE id=?",
-        (draft_id,)
-    )
-    db.commit()
-    return True
 
-def publish_draft(draft_id: int):
-    # TODO: integrate actual X API posting here
-    db = _conn()
-    db.execute(
-        "UPDATE drafts SET state='published' WHERE id=?",
-        (draft_id,)
-    )
-    db.commit()
-    return True
+def approve_draft(draft_id):
+    conn = get_db()
+    conn.execute("UPDATE drafts SET approved = 1 WHERE id = ?", (draft_id,))
+    conn.commit()
+    conn.close()
 
+
+def publish_draft(draft_id):
+    # Placeholder – to be filled when we add X posting
+    pass
