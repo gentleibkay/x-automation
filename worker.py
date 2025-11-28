@@ -1,54 +1,63 @@
+import time
 import os
-import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
-
-# Correct imports
-from storage import save_drafts, init_db
+from storage import init_db, save_drafts
 from generator import compose_drafts
 from trends import get_trends
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+def wait_for_disk():
+    """Wait until Render has mounted the shared disk at /app/data."""
+    for _ in range(20):  # up to ~10 seconds
+        if os.path.isdir("/app/data") and os.path.ismount("/app/data"):
+            print("[worker] Shared disk is mounted at /app/data")
+            return True
+        print("[worker] Waiting for /app/data mount...")
+        time.sleep(0.5)
+    print("[worker] WARNING: Disk never mounted — using fallback ephemeral FS")
+    return False
 
 
 def job_generate():
-    try:
-        logger.info("Running job_generate...")
+    print("[worker] Running job_generate...")
 
-        trends = get_trends()
-        drafts = compose_drafts(trends)
+    # Ensure disk is mounted before touching DB
+    wait_for_disk()
 
-        save_drafts(drafts)
-        logger.info(f"Saved {len(drafts)} drafts")
+    # Initialize DB ONLY after disk is mounted
+    print("[worker] Initializing database in job...")
+    init_db()
 
-    except Exception as e:
-        logger.error(f"Error in job_generate: {e}", exc_info=True)
+    # Load trends
+    print("[worker] Fetching trends...")
+    trends = get_trends()
+
+    # Generate drafts
+    print("[worker] Generating drafts...")
+    drafts = compose_drafts(trends)
+
+    # Save drafts into shared DB
+    print("[worker] Saving drafts to DB...")
+    save_drafts(drafts)
+
+    print("[worker] Saved", len(drafts), "drafts")
 
 
-def main():
-    # Initialize DB before scheduling anything
-    try:
-        logger.info("Initializing database...")
-        init_db()
-        logger.info("Database initialized successfully.")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}", exc_info=True)
+def start_scheduler():
+    scheduler = BlockingScheduler()
 
-    scheduler = BlockingScheduler(timezone=os.getenv("TIMEZONE", "UTC"))
+    # every minute for testing (later: cron hour=..., minute=...)
+    scheduler.add_job(job_generate, "interval", minutes=1)
 
-    # Run immediately on container start
-    scheduler.add_job(job_generate, "date")
-
-    # Regular schedule
-    scheduler.add_job(job_generate, "cron", hour=9, minute=0)
-    scheduler.add_job(job_generate, "cron", hour=13, minute=0)
-    scheduler.add_job(job_generate, "cron", hour=17, minute=0)
-    scheduler.add_job(job_generate, "cron", hour=21, minute=30)
-
-    logger.info("Scheduler starting...")
+    print("[worker] Scheduler starting...")
     scheduler.start()
 
 
 if __name__ == "__main__":
-    main()
+    print("[worker] Starting worker...")
+
+    # DO NOT RUN init_db() HERE ANYMORE!
+    # The disk may not be mounted yet during startup.
+    # init_db()
+
+    start_scheduler()
