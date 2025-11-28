@@ -4,15 +4,9 @@ from storage import list_drafts, approve_draft, init_db
 
 app = Flask(__name__)
 
-# Make sure templates auto-refresh
-app.config["TEMPLATES_AUTO_RELOAD"] = True
-
-# Ensure DB is created when web server starts
-@app.before_first_request
-def setup_database():
-    print("Initializing database...")
-    init_db()
-
+# Initialize DB immediately at startup (Flask 3.x safe)
+print("Initializing database...")
+init_db()
 
 # -----------------------
 # HOME PAGE — SHOW DRAFTS
@@ -48,10 +42,6 @@ def approve(draft_id):
 # -----------------------
 @app.route("/generated/<path:filename>")
 def serve_generated(filename):
-    """
-    Your worker saves images into generated/ folder.
-    This route makes them accessible as /generated/<file>
-    """
     directory = os.path.join(os.getcwd(), "generated")
     return send_from_directory(directory, filename)
 
