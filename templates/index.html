@@ -4,53 +4,39 @@
     <meta charset="utf-8">
     <title>Pending Drafts</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 30px; }
+        body { font-family: Arial; background: #fafafa; padding: 40px; }
         .draft {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            background: #fff; padding: 25px; border-radius: 10px;
+            margin-bottom: 30px; box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
-        img {
-            max-width: 450px;
-            border-radius: 10px;
-            margin-top: 10px;
-        }
+        img { max-width: 400px; border-radius: 10px; margin-top: 10px; }
         button {
-            margin-top: 15px;
-            padding: 10px 25px;
-            border: none;
-            background: #0066ff;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
+            margin-top: 15px; padding: 10px 20px; background: #007aff;
+            border: none; color: #fff; border-radius: 5px; cursor: pointer;
         }
-        button:hover { background: #004bcc; }
+        button:hover { background: #005fcc; }
     </style>
 </head>
 <body>
 
     <h1>Pending Drafts</h1>
 
-    {% if drafts and drafts|length > 0 %}
+    {% if drafts %}
         {% for d in drafts %}
             <div class="draft">
+                <h3>{{ d.text }}</h3>
 
-                <h3>{{ d["text"] }}</h3>
-
-                {% if d["image_path"] %}
-                    <img src="/{{ d['image_path'] }}" alt="Draft Image">
+                {% if d.image_path %}
+                    <img src="/{{ d.image_path }}" alt="">
                 {% endif %}
 
-                <form action="/approve/{{ d['id'] }}" method="post">
+                <form action="/approve/{{ d.id }}" method="post">
                     <button type="submit">Approve & Publish</button>
                 </form>
-
             </div>
         {% endfor %}
     {% else %}
-        <p>No drafts found. Run worker.py to generate drafts.</p>
+        <p>No drafts found. Worker is running — please wait 1 minute.</p>
     {% endif %}
 
 </body>

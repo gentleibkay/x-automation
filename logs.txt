@@ -1,21 +1,27 @@
+(.venv) blakjEzuz@Administrators-MacBook-Pro x-automation % git add app.py
+git commit -m "Fix: initialize DB on startup for Render"
+git push
 
-import os
-from flask import Flask, render_template, request, redirect, url_for
-from storage import list_drafts, approve_draft, publish_draft
+[main b95fc94] Fix: initialize DB on startup for Render
+ Committer: BlakjEzuz <blakjEzuz@Administrators-MacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
 
-app = Flask(__name__, template_folder="templates")
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "changeme")
+    git config --global --edit
 
-@app.route("/")
-def index():
-    drafts = list_drafts()
-    return render_template("index.html", drafts=drafts)
+After doing this, you may fix the identity used for this commit with:
 
-@app.route("/approve/<int:draft_id>", methods=["POST"])
-def approve(draft_id):
-    approve_draft(draft_id)
-    publish_draft(draft_id)
-    return redirect(url_for("index"))
+    git commit --amend --reset-author
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+ 1 file changed, 22 insertions(+), 12 deletions(-)
+fatal: The current branch main has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin main
+
+To have this happen automatically for branches without a tracking
+upstream, see 'push.autoSetupRemote' in 'git help config'.
+

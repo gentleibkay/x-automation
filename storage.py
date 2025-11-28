@@ -1,55 +1,53 @@
 import sqlite3
 import os
 
-DB_PATH = "/app/data/data.db"   # shared disk location
-
-
-def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+DB_PATH = "/app/data/data.db"
 
 
 def init_db():
-    conn = get_db()
-    conn.execute("""
+    os.makedirs("/app/data", exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    c.execute("""
         CREATE TABLE IF NOT EXISTS drafts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             text TEXT,
-            image_path TEXT,
-            created_at TEXT,
-            approved INTEGER DEFAULT 0
-        );
+            image_path TEXT
+        )
     """)
+
     conn.commit()
     conn.close()
 
 
 def save_drafts(drafts):
-    conn = get_db()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    # Clear old drafts (optional)
+    c.execute("DELETE FROM drafts")
+
     for d in drafts:
-        conn.execute("""
-            INSERT INTO drafts (text, image_path, created_at, approved)
-            VALUES (?, ?, ?, 0)
-        """, (d["text"], d["image_path"], d["created_at"]))
+        c.execute("INSERT INTO drafts (text, image_path) VALUES (?, ?)", (d["text"], d["image_path"]))
+
     conn.commit()
     conn.close()
 
 
 def list_drafts():
-    conn = get_db()
-    rows = conn.execute("SELECT * FROM drafts WHERE approved = 0").fetchall()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, text, image_path FROM drafts")
+    rows = c.fetchall()
     conn.close()
-    return rows
+
+    return [{"id": r[0], "text": r[1], "image_path": r[2]} for r in rows]
 
 
-def approve_draft(draft_id):
-    conn = get_db()
-    conn.execute("UPDATE drafts SET approved = 1 WHERE id = ?", (draft_id,))
+def delete_draft(draft_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("DELETE FROM drafts WHERE id = ?", (draft_id,))
     conn.commit()
     conn.close()
-
-
-def publish_draft(draft_id):
-    # Placeholder – to be filled when we add X posting
-    pass

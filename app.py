@@ -1,54 +1,23 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 import os
-from storage import list_drafts, approve_draft, init_db
+from flask import Flask, render_template, request, redirect
+from storage import list_drafts, delete_draft
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
-# Initialize DB immediately at startup (Flask 3.x safe)
-print("Initializing database...")
-init_db()
 
-# -----------------------
-# HOME PAGE — SHOW DRAFTS
-# -----------------------
 @app.route("/")
 def index():
-    try:
-        drafts = list_drafts()
-        print("Loaded drafts:", drafts)
-    except Exception as e:
-        print("Error loading drafts:", e)
-        drafts = []
-
+    drafts = list_drafts()
     return render_template("index.html", drafts=drafts)
 
 
-# -----------------------
-# APPROVE & PUBLISH BUTTON
-# -----------------------
 @app.route("/approve/<int:draft_id>", methods=["POST"])
 def approve(draft_id):
-    print(f"Approving draft {draft_id}")
-    try:
-        approve_draft(draft_id)
-    except Exception as e:
-        print("Error approving draft:", e)
-
-    return redirect(url_for("index"))
+    # TODO: add X publishing later
+    delete_draft(draft_id)
+    return redirect("/")
 
 
-# -----------------------
-# SERVE GENERATED IMAGE FILES
-# -----------------------
-@app.route("/generated/<path:filename>")
-def serve_generated(filename):
-    directory = os.path.join(os.getcwd(), "generated")
-    return send_from_directory(directory, filename)
-
-
-# -----------------------
-# MAIN ENTRY
-# -----------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
