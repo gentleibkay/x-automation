@@ -10,5 +10,8 @@ COPY . .
 ENV PORT=10000
 EXPOSE 10000
 
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000", "--workers", "2", "--threads", "2"]
+# ⬇⬇ IMPORTANT: Use entrypoint so Render can override CMD
+ENTRYPOINT []
 
+# Default command (used ONLY by the web service)
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000", "--workers", "2", "--threads", "2"]
