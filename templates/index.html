@@ -33,18 +33,20 @@
 
     <h1>Pending Drafts</h1>
 
-    {% if drafts %}
+    {% if drafts and drafts|length > 0 %}
         {% for d in drafts %}
             <div class="draft">
-                <h3>{{ d.text }}</h3>
 
-                {% if d.image_path %}
-                    <img src="/{{ d.image_path }}" alt="Draft Image">
+                <h3>{{ d["text"] }}</h3>
+
+                {% if d["image_path"] %}
+                    <img src="/{{ d['image_path'] }}" alt="Draft Image">
                 {% endif %}
 
-                <form action="/approve/{{ d.id }}" method="post">
+                <form action="/approve/{{ d['id'] }}" method="post">
                     <button type="submit">Approve & Publish</button>
                 </form>
+
             </div>
         {% endfor %}
     {% else %}

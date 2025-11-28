@@ -1,50 +1,64 @@
-import os
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
-from storage import list_drafts, approve_draft, publish_draft, init_db
+import os
+from storage import list_drafts, approve_draft, init_db
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "changeme")
+app = Flask(__name__)
 
-# -------------------------
-# Create database on startup
-# -------------------------
-with app.app_context():
-    try:
-        init_db()
-        print("Database initialized.")
-    except Exception as e:
-        print("Error initializing DB:", e)
+# Make sure templates auto-refresh
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
-
-# -------------------------
-# Serve static files
-# -------------------------
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    return send_from_directory('static', filename)
+# Ensure DB is created when web server starts
+@app.before_first_request
+def setup_database():
+    print("Initializing database...")
+    init_db()
 
 
-# -------------------------
-# Admin UI
-# -------------------------
+# -----------------------
+# HOME PAGE — SHOW DRAFTS
+# -----------------------
 @app.route("/")
 def index():
-    drafts = list_drafts()
+    try:
+        drafts = list_drafts()
+        print("Loaded drafts:", drafts)
+    except Exception as e:
+        print("Error loading drafts:", e)
+        drafts = []
+
     return render_template("index.html", drafts=drafts)
 
 
-# -------------------------
-# Approve + Publish
-# -------------------------
+# -----------------------
+# APPROVE & PUBLISH BUTTON
+# -----------------------
 @app.route("/approve/<int:draft_id>", methods=["POST"])
 def approve(draft_id):
-    approve_draft(draft_id)
-    publish_draft(draft_id)
+    print(f"Approving draft {draft_id}")
+    try:
+        approve_draft(draft_id)
+    except Exception as e:
+        print("Error approving draft:", e)
+
     return redirect(url_for("index"))
 
 
-# -------------------------
-# Run server
-# -------------------------
+# -----------------------
+# SERVE GENERATED IMAGE FILES
+# -----------------------
+@app.route("/generated/<path:filename>")
+def serve_generated(filename):
+    """
+    Your worker saves images into generated/ folder.
+    This route makes them accessible as /generated/<file>
+    """
+    directory = os.path.join(os.getcwd(), "generated")
+    return send_from_directory(directory, filename)
+
+
+# -----------------------
+# MAIN ENTRY
+# -----------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
